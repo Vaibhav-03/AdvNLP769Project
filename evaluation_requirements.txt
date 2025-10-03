@@ -1,0 +1,24 @@
+# Additional requirements for TradingAgents Evaluation Framework
+# Install these in addition to the main requirements.txt
+
+# Data handling and analysis
+pandas>=2.0.0
+numpy>=1.24.0
+yfinance>=0.2.31
+
+# Visualization
+matplotlib>=3.7.0
+seaborn>=0.12.0
+
+# Performance optimization
+numba>=0.57.0  # Optional: for faster numerical computations
+
+# Development and testing (optional)
+pytest>=7.0.0
+pytest-cov>=4.0.0
+black>=23.0.0
+flake8>=6.0.0
+
+# Jupyter notebook support (optional)
+jupyter>=1.0.0
+ipywidgets>=8.0.0
