@@ -132,11 +132,28 @@ def check_current_status():
         for ticker, shares in positions.items():
             print(f"  {ticker}: {shares:.1f} shares")
     
-    # Calculate proper equity curve = cash + Σ(positions × last_price)
-    portfolio_value = current_cash
+    # Calculate realized profits from completed trades
+    realized_profits = 0.0
+    if trade_history:
+        # Group trades by ticker to calculate P&L
+        for ticker in set(t['Ticker'] for t in trade_history):
+            ticker_trades = [t for t in trade_history if t['Ticker'] == ticker]
+            ticker_trades.sort(key=lambda x: x['Date'])
+            
+            buy_price = None
+            for trade in ticker_trades:
+                if trade['Action'] == 'BUY':
+                    buy_price = trade['Price']
+                elif trade['Action'] == 'SELL' and buy_price is not None:
+                    # Calculate profit/loss from this trade
+                    trade_pnl = (trade['Price'] - buy_price) * trade['Shares']
+                    realized_profits += trade_pnl
+                    buy_price = None  # Reset for next trade pair
+    
+    # Calculate proper equity curve = cash + Σ(positions × last_price) + realized_profits
+    portfolio_value = current_cash + realized_profits
     
     # Add value of current positions (simplified - using rough price estimates)
-    # In a real implementation, you'd fetch current prices
     position_values = {}
     for ticker, shares in positions.items():
         # Rough price estimates (you'd get real prices in practice)
@@ -155,6 +172,7 @@ def check_current_status():
     
     print(f"\n💎 PORTFOLIO VALUE CALCULATION:")
     print(f"💰 Cash: ${current_cash:,.2f}")
+    print(f"💵 Realized Profits: ${realized_profits:,.2f}")
     
     if position_values:
         print(f"📊 Position Values:")

@@ -52,7 +52,7 @@ def compare_configurations():
     evaluator = TradingEvaluator()
     
     # Test parameters
-    tickers = ["AAPL", "MSFT"]
+    tickers = ["AAPL", "AMZN","GOOGL"]
     start_date = datetime(2024, 3, 1)
     end_date = datetime(2024, 5, 31)
     
@@ -120,10 +120,32 @@ def evaluate_with_learning():
             analysts=["market", "news"]
         )
         
+        # Calculate realized profits from completed trades
+        realized_profits = 0.0
+        if not result.trades.empty:
+            for ticker in result.trades['Ticker'].unique():
+                ticker_trades = result.trades[result.trades['Ticker'] == ticker].sort_values('Timestamp')
+                
+                buy_price = None
+                for _, trade in ticker_trades.iterrows():
+                    if trade['Action'] == 'BUY':
+                        buy_price = trade['Price']
+                    elif trade['Action'] == 'SELL' and buy_price is not None:
+                        trade_pnl = (trade['Price'] - buy_price) * trade['Shares']
+                        realized_profits += trade_pnl
+                        buy_price = None
+        
+        # Calculate total portfolio value including realized profits
+        current_positions_value = sum(pos.market_value for pos in result.portfolio.positions.values())
+        total_portfolio_value = result.portfolio.cash + current_positions_value + realized_profits
+        
         print("LEARNING EVALUATION RESULTS:")
         print("-" * 40)
-        print(f"Final Portfolio Value: ${result.portfolio.total_value:,.2f}")
-        print(f"Total Return: {result.metrics.total_return_pct:.2f}%")
+        print(f"Cash: ${result.portfolio.cash:,.2f}")
+        print(f"Current Positions Value: ${current_positions_value:,.2f}")
+        print(f"Realized Profits: ${realized_profits:,.2f}")
+        print(f"Total Portfolio Value: ${total_portfolio_value:,.2f}")
+        print(f"Total Return: {((total_portfolio_value / 100000.0) - 1) * 100:.2f}%")
         print(f"Sharpe Ratio: {result.metrics.sharpe_ratio:.3f}")
         print(f"Total Trades: {result.metrics.total_trades}")
         

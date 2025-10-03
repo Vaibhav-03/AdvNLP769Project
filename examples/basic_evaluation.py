@@ -62,12 +62,36 @@ def main():
             commission_per_trade=0.0
         )
         
+        # Calculate realized profits from completed trades
+        realized_profits = 0.0
+        if not result.trades.empty:
+            # Group trades by ticker to calculate P&L for each stock
+            for ticker in result.trades['Ticker'].unique():
+                ticker_trades = result.trades[result.trades['Ticker'] == ticker].sort_values('Timestamp')
+                
+                buy_price = None
+                for _, trade in ticker_trades.iterrows():
+                    if trade['Action'] == 'BUY':
+                        buy_price = trade['Price']
+                    elif trade['Action'] == 'SELL' and buy_price is not None:
+                        # Calculate profit/loss from this trade
+                        trade_pnl = (trade['Price'] - buy_price) * trade['Shares']
+                        realized_profits += trade_pnl
+                        buy_price = None  # Reset for next trade pair
+        
+        # Calculate total portfolio value including realized profits
+        current_positions_value = sum(pos.market_value for pos in result.portfolio.positions.values())
+        total_portfolio_value = result.portfolio.cash + current_positions_value + realized_profits
+        
         # Print results
         print("EVALUATION RESULTS:")
         print("-" * 30)
-        print(f"Final Portfolio Value: ${result.portfolio.total_value:,.2f}")
-        print(f"Total Return: ${result.metrics.total_return:,.2f}")
-        print(f"Total Return %: {result.metrics.total_return_pct:.2f}%")
+        print(f"Cash: ${result.portfolio.cash:,.2f}")
+        print(f"Current Positions Value: ${current_positions_value:,.2f}")
+        print(f"Realized Profits: ${realized_profits:,.2f}")
+        print(f"Total Portfolio Value: ${total_portfolio_value:,.2f}")
+        print(f"Total Return: ${total_portfolio_value - initial_cash:,.2f}")
+        print(f"Total Return %: {((total_portfolio_value / initial_cash) - 1) * 100:.2f}%")
         print(f"Sharpe Ratio: {result.metrics.sharpe_ratio:.3f}")
         print(f"Maximum Drawdown: {result.metrics.max_drawdown:.2f}%")
         print(f"Win Rate: {result.metrics.win_rate:.2f}%")
